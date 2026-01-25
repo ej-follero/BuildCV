@@ -25,6 +25,7 @@ export function Stepper({ currentStep, steps, onStepClick }: StepperProps) {
             <div key={step.key} className="flex items-center flex-1">
               <div className="flex flex-col items-center flex-1">
                 <button
+                  suppressHydrationWarning
                   type="button"
                   onClick={() => isClickable && onStepClick?.(step.key)}
                   disabled={!isClickable}

@@ -11,7 +11,7 @@ import { Stepper } from './Stepper';
 import { TemplatePreview } from './TemplatePreview';
 import { ExportButtons } from './ExportButtons';
 import { PersonalInfoSection } from './sections/PersonalInfoSection';
-import { ExperienceSection } from './sections/ExperienceSection';
+import { ExperienceSectionWithDrag } from './sections/ExperienceSectionWithDrag';
 import { EducationSection } from './sections/EducationSection';
 import { SkillsSection } from './sections/SkillsSection';
 import { AIFeatures } from './AIFeatures';
@@ -203,7 +203,7 @@ export function ResumeBuilder() {
       case 'personal':
         return <PersonalInfoSection form={form as any} />;
       case 'experience':
-        return <ExperienceSection form={form as any} />;
+        return <ExperienceSectionWithDrag form={form as any} />;
       case 'education':
         return <EducationSection form={form as any} />;
       case 'skills':
@@ -243,7 +243,7 @@ export function ResumeBuilder() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="w-6 h-6 text-primary" />
-                <h1 className="text-2xl font-bold">Resume Builder</h1>
+                <h1 className="text-2xl font-bold">BuildCV</h1>
               </div>
               <div className="flex items-center gap-2">
                 <Button

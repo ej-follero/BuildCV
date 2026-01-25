@@ -5,6 +5,7 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react'],
   },
   webpack: (config) => {
+    // Fix for pdfjs worker
     config.resolve.alias = {
       ...config.resolve.alias,
       'pdfjs-dist/legacy/build/pdf.worker.js': 'pdfjs-dist/build/pdf.worker.js',

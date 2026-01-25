@@ -8,9 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2 } from 'lucide-react';
-import { generateId, reorder } from '@/lib/utils';
+import { generateId } from '@/lib/utils';
+import { useDragDrop } from '@/lib/utils/dragDrop';
 import { motion, Reorder } from 'framer-motion';
-import { useState } from 'react';
 
 interface ExperienceSectionProps {
   form: UseFormReturn<{ experiences: Experience[] }>;
@@ -22,18 +22,8 @@ export function ExperienceSectionWithDrag({ form }: ExperienceSectionProps) {
     control,
     name: 'experiences',
   });
-  const [items, setItems] = useState(fields);
-
-  const handleReorder = (newOrder: typeof items) => {
-    setItems(newOrder);
-    // Update form values
-    newOrder.forEach((item, index) => {
-      const originalIndex = fields.findIndex(f => f.id === item.id);
-      if (originalIndex !== index) {
-        move(originalIndex, index);
-      }
-    });
-  };
+  
+  const { items, handleReorder } = useDragDrop(fields, move);
 
   return (
     <div className="space-y-6">

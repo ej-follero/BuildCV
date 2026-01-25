@@ -1,6 +1,6 @@
-# Resume Builder
+# BuildCV
 
-A fully functional, production-ready Resume Builder web app built with Next.js 15, TypeScript, Tailwind CSS, and shadcn/ui components.
+A fully functional, production-ready BuildCV web app built with Next.js 15, TypeScript, Tailwind CSS, and shadcn/ui components.
 
 ## Features
 

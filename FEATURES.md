@@ -1,4 +1,4 @@
-# Enhanced Resume Builder - Feature List
+# BuildCV - Feature List
 
 ## Core Features (Enhanced)
 

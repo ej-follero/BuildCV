@@ -6,10 +6,10 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Resume Builder - Create Professional Resumes",
+  title: "BuildCV - Create Professional Resumes",
   description: "Build beautiful, professional resumes in minutes. Free resume builder with multiple templates, PDF export, and more.",
   keywords: ["resume builder", "CV builder", "resume maker", "professional resume"],
-  authors: [{ name: "Resume Builder" }],
+  authors: [{ name: "BuildCV" }],
   manifest: "/manifest.json",
 };
 

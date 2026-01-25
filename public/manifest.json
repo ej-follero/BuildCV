@@ -1,6 +1,6 @@
 {
-  "name": "Resume Builder",
-  "short_name": "Resume Builder",
+  "name": "BuildCV",
+  "short_name": "BuildCV",
   "description": "Build beautiful, professional resumes in minutes",
   "start_url": "/",
   "display": "standalone",
