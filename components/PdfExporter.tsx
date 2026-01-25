@@ -284,7 +284,7 @@ export function PdfExporter({ data }: PdfExporterProps) {
   // Memoize the document to prevent unnecessary re-renders
   // Always call this hook before any conditional returns
   // Only create document when mounted, data is valid, and sanitized data passes deep validation
-  const pdfDocument = useMemo(() => {
+  const pdfDocument = useMemo<React.ReactElement | null>(() => {
     // Don't create document if not mounted (SSR safety)
     if (!mounted) {
       return null;
@@ -335,7 +335,7 @@ export function PdfExporter({ data }: PdfExporterProps) {
 
   try {
     return (
-      <BlobProvider document={pdfDocument}>
+      <BlobProvider document={pdfDocument as React.ReactElement}>
         {({ blob, url, loading, error }) => {
           const handleDownload = () => {
             if (!blob || !url) return;

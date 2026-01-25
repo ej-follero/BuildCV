@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+// SECURITY: Only use server-side environment variable (without NEXT_PUBLIC_ prefix)
+// This ensures the API key is never exposed to the client-side bundle
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 export async function POST(request: NextRequest) {
   try {
