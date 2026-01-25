@@ -7,7 +7,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Sparkles, Target, Lightbulb, TrendingUp } from 'lucide-react';
+import { Sparkles, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface AIFeaturesProps {
@@ -21,6 +21,13 @@ export function AIFeatures({ resumeData, onSuggestionApply }: AIFeaturesProps) {
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isTailoring, setIsTailoring] = useState(false);
+  
+  // Content Suggestions state
+  const [contentContext, setContentContext] = useState('');
+  const [contentType, setContentType] = useState<'bullet' | 'summary'>('bullet');
+  const [jobTitle, setJobTitle] = useState('');
+  const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -54,8 +61,7 @@ export function AIFeatures({ resumeData, onSuggestionApply }: AIFeaturesProps) {
       {/* Resume Scoring */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
+          <CardTitle>
             Resume Score
           </CardTitle>
         </CardHeader>
@@ -107,8 +113,7 @@ export function AIFeatures({ resumeData, onSuggestionApply }: AIFeaturesProps) {
       {/* Job Description Tailoring */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
+          <CardTitle>
             Tailor to Job Description
           </CardTitle>
         </CardHeader>
@@ -155,9 +160,13 @@ export function AIFeatures({ resumeData, onSuggestionApply }: AIFeaturesProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => onSuggestionApply(suggestion)}
+                        onClick={() => {
+                          onSuggestionApply(suggestion);
+                          // Remove the applied suggestion from the list
+                          setSuggestions((prev) => prev.filter((_, i) => i !== idx));
+                        }}
                       >
-                        Apply
+                        Apply Suggestion
                       </Button>
                     )}
                   </motion.div>
@@ -171,30 +180,152 @@ export function AIFeatures({ resumeData, onSuggestionApply }: AIFeaturesProps) {
       {/* Content Suggestions */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="w-5 h-5" />
+          <CardTitle>
             Content Suggestions
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Get AI-powered suggestions for improving your resume content.
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Generate AI-powered bullet points or summaries based on your experience.
           </p>
+          
+          {/* Type Selection */}
+          <div className="flex gap-2">
+            <Button
+              variant={contentType === 'bullet' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setContentType('bullet');
+                setGeneratedContent(null);
+              }}
+              className="flex-1"
+            >
+              Bullet Point
+            </Button>
+            <Button
+              variant={contentType === 'summary' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setContentType('summary');
+                setGeneratedContent(null);
+              }}
+              className="flex-1"
+            >
+              Summary
+            </Button>
+          </div>
+
+          {/* Context Input */}
+          <div>
+            <Label htmlFor="content-context">
+              {contentType === 'bullet' ? 'What did you accomplish?' : 'Describe your background'}
+            </Label>
+            <Textarea
+              id="content-context"
+              value={contentContext}
+              onChange={(e) => setContentContext(e.target.value)}
+              placeholder={
+                contentType === 'bullet'
+                  ? 'e.g., Led a team of 5 developers to deliver a new feature'
+                  : 'e.g., 5 years of experience in software development with expertise in React and Node.js'
+              }
+              className="mt-1 min-h-[100px]"
+            />
+          </div>
+
+          {/* Job Title (for summary only) */}
+          {contentType === 'summary' && (
+            <div>
+              <Label htmlFor="job-title">Job Title (optional)</Label>
+              <Textarea
+                id="job-title"
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+                placeholder="e.g., Senior Software Engineer"
+                className="mt-1 min-h-[60px]"
+              />
+            </div>
+          )}
+
+          {/* Generate Button */}
           <Button
             variant="outline"
             className="w-full"
             onClick={async () => {
-              const suggestion = await generateContentSuggestion(
-                'bullet',
-                'Led cross-functional team',
-                'Software Engineer'
-              );
-              alert(`Suggestion: ${suggestion}`);
+              if (!contentContext.trim()) {
+                alert('Please enter some context first.');
+                return;
+              }
+              
+              setIsGenerating(true);
+              setGeneratedContent(null);
+              try {
+                const suggestion = await generateContentSuggestion(
+                  contentType,
+                  contentContext,
+                  contentType === 'summary' ? jobTitle || undefined : undefined
+                );
+                setGeneratedContent(suggestion);
+              } catch (error) {
+                console.error('Failed to generate content:', error);
+                alert('Failed to generate suggestion. Please try again.');
+              } finally {
+                setIsGenerating(false);
+              }
             }}
+            disabled={!contentContext.trim() || isGenerating}
           >
-            <Lightbulb className="w-4 h-4 mr-2" />
-            Generate Bullet Point
+            {isGenerating ? 'Generating...' : `Generate ${contentType === 'bullet' ? 'Bullet Point' : 'Summary'}`}
           </Button>
+
+          {/* Generated Content Display */}
+          <AnimatePresence>
+            {generatedContent && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="p-4 bg-secondary rounded-lg space-y-3"
+              >
+                <div className="font-medium">Generated {contentType === 'bullet' ? 'Bullet Point' : 'Summary'}:</div>
+                <div className="text-sm whitespace-pre-wrap">{generatedContent}</div>
+                {onSuggestionApply && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        // Create a suggestion object to apply
+                        const suggestion: AISuggestion = {
+                          type: contentType === 'bullet' ? 'bullet' : 'summary',
+                          suggestion: generatedContent,
+                          reason: `AI-generated ${contentType}`,
+                          original: contentContext,
+                        };
+                        onSuggestionApply(suggestion);
+                        setGeneratedContent(null);
+                        setContentContext('');
+                        if (contentType === 'summary') {
+                          setJobTitle('');
+                        }
+                      }}
+                    >
+                      Apply to Resume
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setGeneratedContent(null);
+                      }}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </div>

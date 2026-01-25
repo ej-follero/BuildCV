@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ResumeData, Step } from '@/lib/types';
+import { ResumeData, Step, AISuggestion } from '@/lib/types';
 import { resumeDataSchema } from '@/lib/validation';
 import { getInitialResumeData, exportResumeData, importResumeData } from '@/lib/storage';
-import { getExampleResumeData, getDefaultResumeData } from '@/lib/utils';
+import { getExampleResumeData, getDefaultResumeData, generateId } from '@/lib/utils';
 import { Stepper } from './Stepper';
 import { TemplatePreview } from './TemplatePreview';
 import { ExportButtons } from './ExportButtons';
@@ -54,7 +54,7 @@ export function ResumeBuilder() {
     mode: 'onChange',
   });
 
-  const { handleSubmit, watch, setValue } = form;
+  const { handleSubmit, watch, setValue, getValues } = form;
   const watchedData = watch();
 
   // History management
@@ -66,10 +66,8 @@ export function ResumeBuilder() {
     const loadedData = getInitialResumeData();
     setResumeData(loadedData);
     // Reset form with loaded data
-    Object.keys(loadedData).forEach((key) => {
-      setValue(key as keyof ResumeData, loadedData[key as keyof ResumeData] as any);
-    });
-  }, [setValue]);
+    form.reset(loadedData);
+  }, [form]);
 
   // Auto-save to localStorage and history
   useEffect(() => {
@@ -84,7 +82,7 @@ export function ResumeBuilder() {
       return () => clearTimeout(timeoutId);
     });
     return () => subscription.unsubscribe();
-  }, [watch, history]);
+  }, [watch, history.addToHistory]);
 
   const stepIndex = steps.findIndex((s) => s.key === currentStep);
   const progress = ((stepIndex + 1) / steps.length) * 100;
@@ -124,6 +122,97 @@ export function ResumeBuilder() {
     setSectionOrder(newOrder);
   };
 
+  // Handle applying AI suggestions
+  const handleApplySuggestion = (suggestion: AISuggestion) => {
+    const currentData = getValues() as ResumeData;
+    
+    switch (suggestion.type) {
+      case 'summary':
+        // Update personal summary
+        setValue('personalInfo.summary', suggestion.suggestion);
+        setResumeData((prev) => ({
+          ...prev,
+          personalInfo: { ...prev.personalInfo, summary: suggestion.suggestion },
+        }));
+        // Navigate to personal info step to show the change
+        setCurrentStep('personal');
+        break;
+        
+      case 'bullet':
+        // Find and update matching experience description
+        if (suggestion.original && currentData.experiences.length > 0) {
+          const experienceIndex = currentData.experiences.findIndex(
+            (exp) => exp.description.includes(suggestion.original || '')
+          );
+          if (experienceIndex !== -1) {
+            // Replace the matching description
+            const updatedExperiences = [...currentData.experiences];
+            updatedExperiences[experienceIndex] = {
+              ...updatedExperiences[experienceIndex],
+              description: suggestion.suggestion,
+            };
+            setValue('experiences', updatedExperiences);
+            setResumeData((prev) => ({ ...prev, experiences: updatedExperiences }));
+            setCurrentStep('experience');
+          } else {
+            // If no match found, append to first experience
+            const updatedExperiences = [...currentData.experiences];
+            updatedExperiences[0] = {
+              ...updatedExperiences[0],
+              description: updatedExperiences[0].description 
+                ? `${updatedExperiences[0].description}\n\n${suggestion.suggestion}`
+                : suggestion.suggestion,
+            };
+            setValue('experiences', updatedExperiences);
+            setResumeData((prev) => ({ ...prev, experiences: updatedExperiences }));
+            setCurrentStep('experience');
+          }
+        } else if (currentData.experiences.length > 0) {
+          // No original text, append to first experience
+          const updatedExperiences = [...currentData.experiences];
+          updatedExperiences[0] = {
+            ...updatedExperiences[0],
+            description: updatedExperiences[0].description 
+              ? `${updatedExperiences[0].description}\n\n${suggestion.suggestion}`
+              : suggestion.suggestion,
+          };
+          setValue('experiences', updatedExperiences);
+          setResumeData((prev) => ({ ...prev, experiences: updatedExperiences }));
+          setCurrentStep('experience');
+        } else {
+          alert('Please add an experience first before applying bullet point suggestions.');
+        }
+        break;
+        
+      case 'keyword':
+        // Extract keyword from suggestion (first significant word)
+        const keywordMatch = suggestion.suggestion.match(/\b[A-Z][a-z]+\b/);
+        const keyword = keywordMatch ? keywordMatch[0] : suggestion.suggestion.split(/\s+/)[0] || suggestion.suggestion.split(' ')[0];
+        
+        if (keyword && !currentData.skills.some(s => s.name.toLowerCase() === keyword.toLowerCase())) {
+          const newSkill = {
+            id: generateId(),
+            name: keyword,
+            level: 'intermediate' as const,
+          };
+          const updatedSkills = [...currentData.skills, newSkill];
+          setValue('skills', updatedSkills);
+          setResumeData((prev) => ({ ...prev, skills: updatedSkills }));
+          setCurrentStep('skills');
+        } else {
+          // Keyword already exists, show helpful message
+          alert(`"${keyword}" is already in your skills. The suggestion was: ${suggestion.suggestion}\n\nConsider incorporating this into your experience descriptions.`);
+        }
+        break;
+    }
+    
+    // Add to history after a short delay to ensure state is updated
+    setTimeout(() => {
+      const updatedData = getValues() as ResumeData;
+      history.addToHistory(updatedData);
+    }, 100);
+  };
+
   const handleNext = async () => {
     let fieldsToValidate: (keyof ResumeData)[] = [];
     
@@ -159,6 +248,30 @@ export function ResumeBuilder() {
       setCurrentStep(steps[currentIndex - 1].key);
     }
   };
+
+  const handleUndo = () => {
+    const previous = history.undo();
+    if (previous) {
+      form.reset(previous);
+      setResumeData(previous);
+    }
+  };
+
+  const handleRedo = () => {
+    const next = history.redo();
+    if (next) {
+      form.reset(next);
+      setResumeData(next);
+    }
+  };
+
+  // Connect keyboard shortcuts
+  useKeyboardShortcuts({
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+    onNext: handleNext,
+    onPrevious: handlePrevious,
+  });
 
   const handleExportPDF = () => {
     // This will be handled by ExportButtons component
@@ -233,10 +346,29 @@ export function ResumeBuilder() {
     input.click();
   };
 
+  // Check if resume is mostly empty (to show import option)
+  // Only check after mount to avoid hydration mismatch
+  const isResumeEmpty = mounted && (
+    !resumeData.personalInfo.firstName &&
+    !resumeData.personalInfo.lastName &&
+    resumeData.experiences.length === 0 &&
+    resumeData.education.length === 0 &&
+    resumeData.skills.length === 0
+  );
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 'personal':
-        return <PersonalInfoSection form={form as any} />;
+        return (
+          <div className="space-y-6">
+            {isResumeEmpty && (
+              <div className="mb-6">
+                <LinkedInImport onImport={handleLinkedInImport} />
+              </div>
+            )}
+            <PersonalInfoSection form={form as any} />
+          </div>
+        );
       case 'experience':
         return <ExperienceSectionWithDrag form={form as any} />;
       case 'education':
@@ -261,7 +393,7 @@ export function ResumeBuilder() {
             </div>
             <ExportButtons data={resumeData} />
             <LinkedInImport onImport={handleLinkedInImport} />
-            <AIFeatures resumeData={resumeData} />
+            <AIFeatures resumeData={resumeData} onSuggestionApply={handleApplySuggestion} />
           </div>
         );
       default:
@@ -284,15 +416,7 @@ export function ResumeBuilder() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    const previous = history.undo();
-                    if (previous) {
-                      Object.keys(previous).forEach((key) => {
-                        setValue(key as keyof ResumeData, previous[key as keyof ResumeData] as any);
-                      });
-                      setResumeData(previous);
-                    }
-                  }}
+                  onClick={handleUndo}
                   disabled={!history.canUndo}
                   title="Undo (Ctrl+Z)"
                 >
@@ -301,15 +425,7 @@ export function ResumeBuilder() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    const next = history.redo();
-                    if (next) {
-                      Object.keys(next).forEach((key) => {
-                        setValue(key as keyof ResumeData, next[key as keyof ResumeData] as any);
-                      });
-                      setResumeData(next);
-                    }
-                  }}
+                  onClick={handleRedo}
                   disabled={!history.canRedo}
                   title="Redo (Ctrl+Shift+Z)"
                 >

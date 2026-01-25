@@ -8,28 +8,22 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 export async function POST(request: NextRequest) {
   try {
     if (!GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: 'Gemini API key not configured. Add GEMINI_API_KEY to .env.local' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Gemini API key missing' }, { status: 500 });
     }
 
     const { prompt } = await request.json();
-
-    if (!prompt) {
-      return NextResponse.json(
-        { error: 'Prompt is required' },
-        { status: 400 }
-      );
-    }
+    if (!prompt) return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     
-    // Use available Gemini models (gemini-pro is deprecated)
-    // Order: gemini-1.5-flash (fastest) -> gemini-1.5-pro (most capable) -> gemini-1.0-pro (fallback)
-    const modelNames = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
-    let lastError: any = null;
-    
+    // ✅ 2026 FREE TIER MODELS (no 404 errors)
+    const modelNames = [
+      'gemini-2.5-flash',           // Fastest, free tier favorite
+      'gemini-2.0-flash',           // Stable fallback
+      'gemini-flash-latest',        // Latest stable flash
+      'gemini-2.5-flash-lite',      // Ultra-lightweight
+    ];
+
     for (const modelName of modelNames) {
       try {
         const model = genAI.getGenerativeModel({ model: modelName });
@@ -37,31 +31,23 @@ export async function POST(request: NextRequest) {
         const response = await result.response;
         const text = response.text();
         
-        return NextResponse.json({ text });
+        console.log(`✅ Used model: ${modelName}`);
+        return NextResponse.json({ text, model: modelName });
       } catch (error: any) {
-        lastError = error;
-        // If it's a 404 (model not found), try next model
-        const errorMessage = error.message || error.toString() || '';
-        if (
-          errorMessage.includes('404') || 
-          errorMessage.includes('not found') || 
-          errorMessage.includes('is not found') ||
-          errorMessage.includes('not supported')
-        ) {
-          console.log(`Model ${modelName} not available, trying next...`);
+        const msg = error.message || '';
+        if (msg.includes('404') || msg.includes('not found')) {
+          console.log(`⏭️ Skipping ${modelName}`);
           continue;
         }
-        // For other errors, throw immediately
-        throw error;
+        throw error; // Non-404 errors are real problems
       }
     }
-    
-    // If all models failed, throw the last error
-    throw lastError || new Error('No available Gemini models found. Please check your API key and model availability.');
+
+    throw new Error('No working Gemini models available. Check API key.');
   } catch (error: any) {
-    console.error('Gemini API error:', error);
+    console.error('Gemini error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to generate content' },
+      { error: error.message || 'AI service unavailable' },
       { status: 500 }
     );
   }

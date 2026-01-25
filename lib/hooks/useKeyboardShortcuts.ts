@@ -27,15 +27,15 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // Cmd/Ctrl + Z = Undo
-      if (modifier && e.key === 'z' && !e.shiftKey && onUndo) {
+      // Cmd/Ctrl + Z = Undo (without Shift)
+      if (modifier && (e.key === 'z' || e.key === 'Z') && !e.shiftKey && onUndo) {
         e.preventDefault();
         onUndo();
         return;
       }
 
       // Cmd/Ctrl + Shift + Z = Redo
-      if (modifier && e.shiftKey && e.key === 'Z' && onRedo) {
+      if (modifier && e.shiftKey && (e.key === 'z' || e.key === 'Z') && onRedo) {
         e.preventDefault();
         onRedo();
         return;
