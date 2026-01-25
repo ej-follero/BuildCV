@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
 import { generateId } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { useDragDrop } from '@/lib/utils/dragDrop';
+import { motion, Reorder } from 'framer-motion';
 
 interface SkillsSectionProps {
   form: UseFormReturn<{ skills: Skill[]; projects: Project[] }>;
@@ -22,6 +23,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
     fields: skillFields,
     append: appendSkill,
     remove: removeSkill,
+    move: moveSkill,
   } = useFieldArray({
     control,
     name: 'skills',
@@ -31,10 +33,14 @@ export function SkillsSection({ form }: SkillsSectionProps) {
     fields: projectFields,
     append: appendProject,
     remove: removeProject,
+    move: moveProject,
   } = useFieldArray({
     control,
     name: 'projects',
   });
+
+  const { items: skillItems, handleReorder: handleSkillReorder } = useDragDrop(skillFields, moveSkill);
+  const { items: projectItems, handleReorder: handleProjectReorder } = useDragDrop(projectFields, moveProject);
 
   return (
     <div className="space-y-8">
@@ -64,15 +70,15 @@ export function SkillsSection({ form }: SkillsSectionProps) {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Reorder.Group axis="y" values={skillItems} onReorder={handleSkillReorder} className="space-y-4">
           {skillFields.map((field, index) => (
-            <motion.div
-              key={field.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="glass-card p-4 rounded-lg flex items-center gap-4"
-            >
+            <Reorder.Item key={field.id} value={field} id={field.id}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="glass-card p-4 rounded-lg flex items-center gap-4 cursor-move"
+              >
               <div className="flex-1 grid grid-cols-2 gap-2">
                 <Input
                   {...register(`skills.${index}.name`)}
@@ -98,8 +104,9 @@ export function SkillsSection({ form }: SkillsSectionProps) {
                 <Trash2 className="w-4 h-4" />
               </Button>
             </motion.div>
+            </Reorder.Item>
           ))}
-        </div>
+        </Reorder.Group>
       </div>
 
       {/* Projects Section */}
@@ -130,28 +137,31 @@ export function SkillsSection({ form }: SkillsSectionProps) {
           </div>
         )}
 
-        <div className="space-y-6">
+        <Reorder.Group axis="y" values={projectItems} onReorder={handleProjectReorder} className="space-y-6">
           {projectFields.map((field, index) => (
-            <motion.div
-              key={field.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="glass-card p-6 rounded-lg space-y-4"
-            >
-              <div className="flex items-start justify-between">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Project #{index + 1}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeProject(index)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+            <Reorder.Item key={field.id} value={field} id={field.id}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="glass-card p-6 rounded-lg space-y-4 cursor-move"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span className="text-sm font-medium">Project #{index + 1}</span>
+                    <span className="text-xs">(Drag to reorder)</span>
+                  </div>
+                  {projectFields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeProject(index)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
 
               <div>
                 <Label htmlFor={`project-name-${index}`}>Project Name *</Label>
@@ -213,8 +223,9 @@ export function SkillsSection({ form }: SkillsSectionProps) {
                 )}
               </div>
             </motion.div>
+          </Reorder.Item>
           ))}
-        </div>
+        </Reorder.Group>
       </div>
     </div>
   );

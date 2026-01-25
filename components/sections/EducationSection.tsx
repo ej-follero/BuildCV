@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2 } from 'lucide-react';
 import { generateId } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { useDragDrop } from '@/lib/utils/dragDrop';
+import { motion, Reorder } from 'framer-motion';
 
 interface EducationSectionProps {
   form: UseFormReturn<{ education: Education[] }>;
@@ -17,10 +18,12 @@ interface EducationSectionProps {
 
 export function EducationSection({ form }: EducationSectionProps) {
   const { register, control, formState: { errors } } = form;
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, move } = useFieldArray({
     control,
     name: 'education',
   });
+  
+  const { items, handleReorder } = useDragDrop(fields, move);
 
   return (
     <div className="space-y-6">
@@ -55,30 +58,31 @@ export function EducationSection({ form }: EducationSectionProps) {
         </div>
       )}
 
-      <div className="space-y-6">
+      <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-6">
         {fields.map((field, index) => (
-          <motion.div
-            key={field.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="glass-card p-6 rounded-lg space-y-4"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <span className="text-sm font-medium">Education #{index + 1}</span>
+          <Reorder.Item key={field.id} value={field} id={field.id}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="glass-card p-6 rounded-lg space-y-4 cursor-move"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="text-sm font-medium">Education #{index + 1}</span>
+                  <span className="text-xs">(Drag to reorder)</span>
+                </div>
+                {fields.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => remove(index)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
-              {fields.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => remove(index)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
 
             <div>
               <Label htmlFor={`institution-${index}`}>Institution *</Label>
@@ -197,8 +201,9 @@ export function EducationSection({ form }: EducationSectionProps) {
               />
             </div>
           </motion.div>
+        </Reorder.Item>
         ))}
-      </div>
+      </Reorder.Group>
     </div>
   );
 }

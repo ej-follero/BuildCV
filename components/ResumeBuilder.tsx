@@ -89,6 +89,41 @@ export function ResumeBuilder() {
   const stepIndex = steps.findIndex((s) => s.key === currentStep);
   const progress = ((stepIndex + 1) / steps.length) * 100;
 
+  // Section order state
+  const [sectionOrder, setSectionOrder] = useState<('summary' | 'experience' | 'education' | 'skills' | 'projects')[]>([
+    'summary',
+    'experience',
+    'education',
+    'skills',
+    'projects',
+  ]);
+
+  // Reorder handlers for preview drag/drop
+  const handleReorderExperiences = (newExperiences: typeof resumeData.experiences) => {
+    setValue('experiences', newExperiences);
+    setResumeData((prev) => ({ ...prev, experiences: newExperiences }));
+  };
+
+  const handleReorderEducation = (newEducation: typeof resumeData.education) => {
+    setValue('education', newEducation);
+    setResumeData((prev) => ({ ...prev, education: newEducation }));
+  };
+
+  const handleReorderSkills = (newSkills: typeof resumeData.skills) => {
+    setValue('skills', newSkills);
+    setResumeData((prev) => ({ ...prev, skills: newSkills }));
+  };
+
+  const handleReorderProjects = (newProjects: typeof resumeData.projects) => {
+    setValue('projects', newProjects);
+    setResumeData((prev) => ({ ...prev, projects: newProjects }));
+  };
+
+  const handleReorderSections = (newSections: Array<{ id: string; type: string }>) => {
+    const newOrder = newSections.map(s => s.type as 'summary' | 'experience' | 'education' | 'skills' | 'projects');
+    setSectionOrder(newOrder);
+  };
+
   const handleNext = async () => {
     let fieldsToValidate: (keyof ResumeData)[] = [];
     
@@ -395,7 +430,16 @@ export function ResumeBuilder() {
                 <CardContent className="p-0">
                   <div className="border rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-lg max-h-[800px] lg:max-h-none overflow-y-auto">
                     {mounted ? (
-                      <TemplatePreview data={resumeData} className="min-h-[600px] lg:min-h-[800px]" />
+                      <TemplatePreview 
+                        data={resumeData} 
+                        className="min-h-[600px] lg:min-h-[800px]"
+                        onReorderExperiences={handleReorderExperiences}
+                        onReorderEducation={handleReorderEducation}
+                        onReorderSkills={handleReorderSkills}
+                        onReorderProjects={handleReorderProjects}
+                        onReorderSections={handleReorderSections}
+                        sectionOrder={sectionOrder}
+                      />
                     ) : (
                       <div className="min-h-[600px] lg:min-h-[800px] flex items-center justify-center">
                         <div className="text-muted-foreground">Loading preview...</div>
