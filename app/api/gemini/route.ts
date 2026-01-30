@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     
-    // ✅ 2026 FREE TIER MODELS (no 404 errors)
+    // 2026 FREE TIER MODELS (no 404 errors)
     const modelNames = [
       'gemini-2.5-flash',           // Fastest, free tier favorite
       'gemini-2.0-flash',           // Stable fallback
@@ -31,12 +31,12 @@ export async function POST(request: NextRequest) {
         const response = await result.response;
         const text = response.text();
         
-        console.log(`✅ Used model: ${modelName}`);
+        console.log(`Used model: ${modelName}`);
         return NextResponse.json({ text, model: modelName });
       } catch (error: any) {
         const msg = error.message || '';
         if (msg.includes('404') || msg.includes('not found')) {
-          console.log(`⏭️ Skipping ${modelName}`);
+          console.log(`Skipping ${modelName}`);
           continue;
         }
         throw error; // Non-404 errors are real problems
